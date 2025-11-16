@@ -1,13 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState, useMemo } from 'react';
 import { ArrowUpRight } from 'lucide-react';
-import { gsap } from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { SectionHeading } from './ui/SectionHeading';
 import { SectionShapes } from './SectionShapes';
 import { GeometricShapes } from './GeometricShapes';
 import { AnimatedBorder } from './AnimatedBorder';
-
-gsap.registerPlugin(ScrollTrigger);
 
 const projects = [
   {
@@ -71,38 +67,14 @@ const categories = ['All', 'Web Design', 'Branding', 'Development', 'Digital Mar
 export function Work() {
   const [activeCategory, setActiveCategory] = useState('All');
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-  const sectionRef = useRef<HTMLElement>(null);
 
-  const filteredProjects = activeCategory === 'All'
-    ? projects
-    : projects.filter(p => p.category === activeCategory);
-
-  useEffect(() => {
-    if (!sectionRef.current) return;
-
-    const ctx = gsap.context(() => {
-      const projectCards = gsap.utils.toArray<HTMLElement>('.project-card');
-
-      projectCards.forEach((card) => {
-        gsap.from(card, {
-          opacity: 0,
-          y: 100,
-          filter: 'blur(10px)',
-          scrollTrigger: {
-            trigger: card,
-            start: 'top 90%',
-            end: 'top 60%',
-            scrub: 1,
-          },
-        });
-      });
-    }, sectionRef);
-
-    return () => ctx.revert();
-  }, [filteredProjects]);
+  const filteredProjects = useMemo(
+    () => activeCategory === 'All' ? projects : projects.filter(p => p.category === activeCategory),
+    [activeCategory]
+  );
 
   return (
-    <section ref={sectionRef} id="work" className="projects py-32 sm:py-48 bg-neutral-900 relative overflow-hidden">
+    <section id="work" className="projects py-32 sm:py-48 bg-neutral-900 relative overflow-hidden">
       <SectionShapes variant="work" />
       <GeometricShapes variant="floating" />
       <div className="max-w-[1400px] mx-auto px-6 sm:px-8 md:px-12 relative z-10">
