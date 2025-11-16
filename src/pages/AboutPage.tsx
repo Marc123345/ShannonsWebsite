@@ -245,7 +245,10 @@ export function AboutPage() {
             </div>
 
             <div className="lg:col-span-8 bg-neutral-900 border border-neutral-700 p-8 rounded-xl">
-              <values[0].icon className="text-white mb-6" size={42} />
+              {(() => {
+                const IconComponent = values[activeValue].icon;
+                return <IconComponent className="text-white mb-6" size={42} />;
+              })()}
               <h3 className="text-3xl font-black text-white mb-6">{values[activeValue].title}</h3>
               <p className="text-neutral-200 text-xl leading-relaxed">{values[activeValue].description}</p>
             </div>
