@@ -1,0 +1,320 @@
+import { useState } from 'react';
+import { supabase, type ContactFormData as DBContactFormData } from '../lib/supabase';
+import { Mail, Phone, MapPin, Send, Loader2, Check, AlertCircle } from 'lucide-react';
+import { CursorHoverEffect } from '../components/CursorHoverEffect';
+
+interface ContactFormData {
+  name: string;
+  email: string;
+  company: string;
+  phone: string;
+  message: string;
+}
+
+export function ContactPage() {
+  const [formData, setFormData] = useState<ContactFormData>({
+    name: '',
+    email: '',
+    company: '',
+    phone: '',
+    message: '',
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setSubmitStatus('idle');
+
+    try {
+      if (!supabase) {
+        throw new Error('Database connection not available');
+      }
+
+      const dbData: DBContactFormData = {
+        name: formData.name,
+        email: formData.email,
+        budget: formData.company || null,
+        message: `Company: ${formData.company}\nPhone: ${formData.phone}\n\n${formData.message}`,
+      };
+
+      const { error } = await supabase
+        .from('contact_submissions')
+        .insert([dbData]);
+
+      if (error) throw error;
+
+      setSubmitStatus('success');
+      setFormData({
+        name: '',
+        email: '',
+        company: '',
+        phone: '',
+        message: '',
+      });
+
+      setTimeout(() => {
+        setSubmitStatus('idle');
+      }, 5000);
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      setSubmitStatus('error');
+      setTimeout(() => {
+        setSubmitStatus('idle');
+      }, 5000);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  return (
+    <div className="min-h-screen bg-neutral-950 relative">
+      <CursorHoverEffect
+        color="rgba(123, 0, 255, 0.12)"
+        particleColor="rgba(236, 72, 153, 0.2)"
+        rippleSize={110}
+        particleInterval={180}
+      />
+
+      <div className="relative">
+        <div className="absolute inset-0 bg-gradient-to-b from-brand-purple/10 via-transparent to-transparent"></div>
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-brand-purple/20 rounded-full blur-[150px] animate-aurora"></div>
+        <div className="absolute top-1/3 right-1/4 w-80 h-80 bg-brand-pink/20 rounded-full blur-[150px] animate-aurora" style={{ animationDelay: '7s' }}></div>
+      </div>
+
+      <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-8 py-32">
+        <div className="text-center mb-20">
+          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black text-white mb-6 tracking-tight">
+            Let's Build Your Company's <span className="text-transparent bg-gradient-to-r from-brand-purple via-brand-pink to-brand-purple bg-clip-text animate-gradient-pulse" style={{ backgroundSize: '200% 100%' }}>Communication Strategy</span>, That Feels Human
+          </h1>
+          <p className="text-xl text-neutral-300 max-w-2xl mx-auto">
+            We'd love to hear more about your brand, your goals, and how we can help you connect more meaningfully with your audience.
+          </p>
+        </div>
+
+        <div className="grid lg:grid-cols-3 gap-12">
+          <div className="lg:col-span-2">
+            <div className="ultra-glass rounded-2xl p-8 sm:p-12">
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="grid sm:grid-cols-2 gap-6">
+                  <div>
+                    <label htmlFor="name" className="block text-sm font-medium text-neutral-300 mb-2">
+                      Full Name *
+                    </label>
+                    <input
+                      type="text"
+                      id="name"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleChange}
+                      required
+                      className="w-full px-4 py-3 bg-neutral-900/50 border border-neutral-700 rounded-lg text-white placeholder-neutral-500 focus:outline-none focus:border-brand-purple focus:ring-2 focus:ring-brand-purple/20 transition-all"
+                      placeholder="John Doe"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="email" className="block text-sm font-medium text-neutral-300 mb-2">
+                      Email Address *
+                    </label>
+                    <input
+                      type="email"
+                      id="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      required
+                      className="w-full px-4 py-3 bg-neutral-900/50 border border-neutral-700 rounded-lg text-white placeholder-neutral-500 focus:outline-none focus:border-brand-purple focus:ring-2 focus:ring-brand-purple/20 transition-all"
+                      placeholder="john@company.com"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid sm:grid-cols-2 gap-6">
+                  <div>
+                    <label htmlFor="company" className="block text-sm font-medium text-neutral-300 mb-2">
+                      Company
+                    </label>
+                    <input
+                      type="text"
+                      id="company"
+                      name="company"
+                      value={formData.company}
+                      onChange={handleChange}
+                      className="w-full px-4 py-3 bg-neutral-900/50 border border-neutral-700 rounded-lg text-white placeholder-neutral-500 focus:outline-none focus:border-brand-purple focus:ring-2 focus:ring-brand-purple/20 transition-all"
+                      placeholder="Your Company"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="phone" className="block text-sm font-medium text-neutral-300 mb-2">
+                      Phone Number
+                    </label>
+                    <input
+                      type="tel"
+                      id="phone"
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleChange}
+                      className="w-full px-4 py-3 bg-neutral-900/50 border border-neutral-700 rounded-lg text-white placeholder-neutral-500 focus:outline-none focus:border-brand-purple focus:ring-2 focus:ring-brand-purple/20 transition-all"
+                      placeholder="+1 (555) 000-0000"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="message" className="block text-sm font-medium text-neutral-300 mb-2">
+                    Your Message *
+                  </label>
+                  <textarea
+                    id="message"
+                    name="message"
+                    value={formData.message}
+                    onChange={handleChange}
+                    required
+                    rows={6}
+                    className="w-full px-4 py-3 bg-neutral-900/50 border border-neutral-700 rounded-lg text-white placeholder-neutral-500 focus:outline-none focus:border-brand-purple focus:ring-2 focus:ring-brand-purple/20 transition-all resize-none"
+                    placeholder="Tell us about your project and how we can help..."
+                  />
+                </div>
+
+                {submitStatus === 'success' && (
+                  <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4 flex items-start gap-3 animate-cinematic-zoom">
+                    <Check className="text-green-400 flex-shrink-0 mt-0.5" size={20} />
+                    <div>
+                      <p className="text-green-400 font-semibold">Message sent successfully!</p>
+                      <p className="text-green-400/80 text-sm mt-1">We'll get back to you within 24 hours.</p>
+                    </div>
+                  </div>
+                )}
+
+                {submitStatus === 'error' && (
+                  <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 flex items-start gap-3 animate-cinematic-zoom">
+                    <AlertCircle className="text-red-400 flex-shrink-0 mt-0.5" size={20} />
+                    <div>
+                      <p className="text-red-400 font-semibold">Failed to send message</p>
+                      <p className="text-red-400/80 text-sm mt-1">Please try again or email us directly.</p>
+                    </div>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="group w-full px-8 py-4 bg-gradient-to-r from-brand-purple to-brand-pink rounded-lg text-white font-semibold text-lg premium-glow transition-all duration-700 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 overflow-hidden relative"
+                >
+                  <span className="absolute inset-0 bg-gradient-to-r from-brand-pink to-brand-purple opacity-0 group-hover:opacity-100 transition-opacity duration-700"></span>
+                  <span className="absolute inset-0 bg-white/30 opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-700"></span>
+                  <span className="relative flex items-center gap-3">
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="animate-spin" size={20} />
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        Send Message
+                        <Send size={20} />
+                      </>
+                    )}
+                  </span>
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            <div className="ultra-glass rounded-2xl p-8">
+              <div className="flex items-start gap-4 mb-6">
+                <div className="p-3 bg-brand-purple/20 rounded-lg">
+                  <Mail className="text-brand-purple" size={24} />
+                </div>
+                <div>
+                  <h3 className="text-white font-semibold mb-2">Email Us</h3>
+                  <a href="mailto:contact@h2hmarketing.com" className="text-neutral-300 hover:text-brand-purple transition-colors">
+                    contact@h2hmarketing.com
+                  </a>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-4 mb-6">
+                <div className="p-3 bg-brand-purple/20 rounded-lg">
+                  <Phone className="text-brand-purple" size={24} />
+                </div>
+                <div>
+                  <h3 className="text-white font-semibold mb-2">Call Us</h3>
+                  <a href="tel:+1234567890" className="text-neutral-300 hover:text-brand-purple transition-colors">
+                    +1 (234) 567-890
+                  </a>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-brand-purple/20 rounded-lg">
+                  <MapPin className="text-brand-purple" size={24} />
+                </div>
+                <div>
+                  <h3 className="text-white font-semibold mb-2">Visit Us</h3>
+                  <p className="text-neutral-300">
+                    123 Business Street<br />
+                    San Francisco, CA 94102
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="ultra-glass rounded-2xl p-8">
+              <h3 className="text-white font-semibold mb-4">Business Hours</h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between text-neutral-300">
+                  <span>Monday - Friday</span>
+                  <span className="text-white">9:00 - 18:00</span>
+                </div>
+                <div className="flex justify-between text-neutral-300">
+                  <span>Saturday</span>
+                  <span className="text-white">10:00 - 16:00</span>
+                </div>
+                <div className="flex justify-between text-neutral-300">
+                  <span>Sunday</span>
+                  <span className="text-white">Closed</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="ultra-glass rounded-2xl p-8">
+              <h3 className="text-white font-semibold mb-4">Follow Us</h3>
+              <div className="flex gap-4">
+                <a href="#" className="p-3 bg-neutral-900/50 hover:bg-brand-purple/20 border border-neutral-700 hover:border-brand-purple rounded-lg transition-all duration-300 group">
+                  <svg className="w-5 h-5 text-neutral-300 group-hover:text-brand-purple transition-colors" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                  </svg>
+                </a>
+                <a href="#" className="p-3 bg-neutral-900/50 hover:bg-brand-purple/20 border border-neutral-700 hover:border-brand-purple rounded-lg transition-all duration-300 group">
+                  <svg className="w-5 h-5 text-neutral-300 group-hover:text-brand-purple transition-colors" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
+                  </svg>
+                </a>
+                <a href="#" className="p-3 bg-neutral-900/50 hover:bg-brand-purple/20 border border-neutral-700 hover:border-brand-purple rounded-lg transition-all duration-300 group">
+                  <svg className="w-5 h-5 text-neutral-300 group-hover:text-brand-purple transition-colors" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                  </svg>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default ContactPage;
