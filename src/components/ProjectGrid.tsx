@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -22,7 +22,7 @@ interface ProjectGridProps {
   projects: Project[];
 }
 
-export function ProjectGrid({ projects }: ProjectGridProps) {
+export const ProjectGrid = memo(function ProjectGrid({ projects }: ProjectGridProps) {
   const navigate = useNavigate();
   const containerRef = useRef<HTMLDivElement>(null);
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
@@ -100,7 +100,7 @@ export function ProjectGrid({ projects }: ProjectGridProps) {
       </div>
     </div>
   );
-}
+});
 
 interface ProjectCardProps {
   project: Project;
@@ -193,6 +193,8 @@ function ProjectCard({ project, index, onClick }: ProjectCardProps) {
             src={project.thumbnail_url}
             alt={project.title}
             className="project-image w-full h-full object-cover"
+            loading="lazy"
+            decoding="async"
             style={{
               transform: 'translateZ(20px)',
             }}

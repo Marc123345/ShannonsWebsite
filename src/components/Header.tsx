@@ -19,11 +19,22 @@ export function Header() {
     { path: "/blog", label: "Blog" }
   ];
 
-  // shrink on scroll
+  // shrink on scroll with throttling
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 40);
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    let timeoutId: number | null = null;
+    const handleScroll = () => {
+      if (timeoutId === null) {
+        timeoutId = window.setTimeout(() => {
+          setScrolled(window.scrollY > 40);
+          timeoutId = null;
+        }, 100);
+      }
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (timeoutId !== null) clearTimeout(timeoutId);
+    };
   }, []);
 
   // Close mobile menu when route changes

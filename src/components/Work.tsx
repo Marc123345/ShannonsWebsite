@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, memo } from 'react';
 import { ArrowUpRight } from 'lucide-react';
 import { SectionHeading } from './ui/SectionHeading';
 import { SectionShapes } from './SectionShapes';
@@ -64,7 +64,7 @@ const projects = [
 
 const categories = ['All', 'Web Design', 'Branding', 'Development', 'Digital Marketing'];
 
-export function Work() {
+export const Work = memo(function Work() {
   const [activeCategory, setActiveCategory] = useState('All');
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
@@ -131,6 +131,7 @@ export function Work() {
                     alt={project.title}
                     className="w-full h-full object-cover transition-all duration-700 group-hover:scale-105"
                     loading="lazy"
+                    decoding="async"
                     style={{
                       filter: hoveredIndex === index ? 'brightness(0.5)' : 'brightness(0.7) grayscale(0.3)',
                     }}
@@ -215,4 +216,4 @@ export function Work() {
       </div>
     </section>
   );
-}
+});
