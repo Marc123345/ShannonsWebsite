@@ -1,177 +1,228 @@
 import { useEffect, useRef, useState } from "react";
+import gsap from "gsap";
 
-const icons = [
-  { src: "https://ik.imagekit.io/qcvroy8xpd/03_X.svg", alt: "X", xPct: 15, yPct: 20, size: 140, depth: 1.5 },
-  { src: "https://ik.imagekit.io/qcvroy8xpd/02_Instagram.svg", alt: "Instagram", xPct: 75, yPct: 25, size: 150, depth: 1.1 },
-  { src: "https://ik.imagekit.io/qcvroy8xpd/04_LinkedIn.svg", alt: "LinkedIn", xPct: 28, yPct: 55, size: 140, depth: 0.9 },
-  { src: "https://ik.imagekit.io/qcvroy8xpd/05_Youtube.svg", alt: "YouTube", xPct: 70, yPct: 65, size: 155, depth: 1.0 },
-  { src: "https://ik.imagekit.io/qcvroy8xpd/17_Google.svg", alt: "Google", xPct: 50, yPct: 15, size: 145, depth: 1.3 },
-  { src: "https://ik.imagekit.io/qcvroy8xpd/07_Reddit.svg", alt: "Reddit", xPct: 85, yPct: 50, size: 135, depth: 1.2 },
-  { src: "https://ik.imagekit.io/qcvroy8xpd/06_WhatsApp.png", alt: "WhatsApp", xPct: 10, yPct: 65, size: 140, depth: 0.95 },
-  { src: "https://ik.imagekit.io/qcvroy8xpd/11_TikTok.svg", alt: "TikTok", xPct: 45, yPct: 75, size: 130, depth: 1.1 },
+interface FloatingIcon {
+  src: string;
+  alt: string;
+  xPct: number; // initial left %
+  yPct: number; // initial top %
+  size: number;
+  depth: number; // parallax strength
+  rotation: number;
+  zIndex: number;
+}
+
+const icons: FloatingIcon[] = [
+  {
+    src: "https://ik.imagekit.io/qcvroy8xpd/03_X.svg",
+    alt: "X",
+    xPct: 22,
+    yPct: 25,
+    size: 150,
+    depth: 1.5,
+    rotation: -12,
+    zIndex: 3,
+  },
+  {
+    src: "https://ik.imagekit.io/qcvroy8xpd/02_Instagram.svg",
+    alt: "Instagram",
+    xPct: 68,
+    yPct: 30,
+    size: 160,
+    depth: 1.1,
+    rotation: 18,
+    zIndex: 5,
+  },
+  {
+    src: "https://ik.imagekit.io/qcvroy8xpd/04_LinkedIn.svg",
+    alt: "LinkedIn",
+    xPct: 33,
+    yPct: 64,
+    size: 150,
+    depth: 0.9,
+    rotation: 8,
+    zIndex: 4,
+  },
+  {
+    src: "https://ik.imagekit.io/qcvroy8xpd/05_Youtube.svg",
+    alt: "YouTube",
+    xPct: 72,
+    yPct: 70,
+    size: 165,
+    depth: 1.0,
+    rotation: -6,
+    zIndex: 2,
+  },
 ];
 
 export function HeroCanvas() {
   const canvasRef = useRef<HTMLDivElement>(null);
   const iconsRef = useRef<(HTMLDivElement | null)[]>([]);
   const basePositions = useRef<{ x: number; y: number }[]>([]);
-  const mouse = useRef({ x: 0, y: 0 });
-  const animationFrameRef = useRef<number>();
-
-  const [showVideo, setShowVideo] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
+  // detect mobile
   useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768);
-    check();
-    window.addEventListener("resize", check, { passive: true });
-    return () => window.removeEventListener("resize", check);
+    const handle = () => setIsMobile(window.innerWidth < 768);
+    handle();
+    window.addEventListener("resize", handle);
+    return () => window.removeEventListener("resize", handle);
   }, []);
 
-  const computeBase = () => {
+  // calculate base positions
+  const computeBasePositions = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
     const rect = canvas.getBoundingClientRect();
 
     icons.forEach((icon, i) => {
-      basePositions.current[i] = {
-        x: (icon.xPct / 100) * rect.width,
-        y: (icon.yPct / 100) * rect.height,
-      };
+      const x = (icon.xPct / 100) * rect.width;
+      const y = (icon.yPct / 100) * rect.height;
+      basePositions.current[i] = { x, y };
     });
   };
 
+  // init positions after render
   useEffect(() => {
-    computeBase();
-    window.addEventListener("resize", computeBase, { passive: true });
-    return () => window.removeEventListener("resize", computeBase);
-  }, []);
-
-  useEffect(() => {
-    if (isMobile) return;
-
-    const move = (e: MouseEvent) => {
-      const rect = canvasRef.current?.getBoundingClientRect();
-      if (!rect) return;
-
-      mouse.current.x = e.clientX - rect.left;
-      mouse.current.y = e.clientY - rect.top;
-    };
-
-    window.addEventListener("mousemove", move, { passive: true });
-    return () => window.removeEventListener("mousemove", move);
-  }, [isMobile]);
-
-  useEffect(() => {
-    if (isMobile) return;
-
-    let t = 0;
-    let lastTime = performance.now();
-
-    const animate = (currentTime: number) => {
-      const deltaTime = (currentTime - lastTime) / 1000;
-      lastTime = currentTime;
-      t += deltaTime;
+    setTimeout(() => {
+      computeBasePositions();
 
       iconsRef.current.forEach((el, i) => {
         if (!el) return;
-        const { x, y } = basePositions.current[i] || { x: 0, y: 0 };
+        const base = basePositions.current[i];
         const icon = icons[i];
 
-        const floatX = Math.sin(t + i) * 15 * icon.depth;
-        const floatY = Math.cos(t + i * 1.3) * 15 * icon.depth;
+        gsap.set(el, {
+          xPercent: -50,
+          yPercent: -50,
+          x: base.x,
+          y: base.y,
+          rotation: icon.rotation,
+        });
 
-        const dx = x - mouse.current.x;
-        const dy = y - mouse.current.y;
+        // idle float
+        gsap.to(el, {
+          y: base.y + (Math.random() > 0.5 ? 20 : -20),
+          duration: 4 + Math.random() * 2,
+          repeat: -1,
+          yoyo: true,
+          ease: "sine.inOut",
+          modifiers: {
+            y: gsap.utils.unitize((v) =>
+              parseFloat(v)
+            ), // ensure px stays px
+          },
+        });
+
+        // rotation
+        gsap.to(el, {
+          rotation: `+=${Math.random() > 0.5 ? 360 : -360}`,
+          duration: 22 + Math.random() * 10,
+          ease: "none",
+          repeat: -1,
+        });
+      });
+    }, 50);
+  }, []);
+
+  // mouse interaction (repulsion + parallax)
+  useEffect(() => {
+    if (isMobile) return;
+
+    const handleMove = (e: MouseEvent) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+
+      const rect = canvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+
+      const repelDistance = 200;
+      const repelPower = 140;
+
+      iconsRef.current.forEach((el, i) => {
+        if (!el) return;
+
+        const base = basePositions.current[i];
+        const icon = icons[i];
+
+        const dx = base.x - mx;
+        const dy = base.y - my;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        const repelRadius = 200;
-        let repelX = 0,
-          repelY = 0;
 
-        if (dist < repelRadius) {
-          const force = (repelRadius - dist) / repelRadius;
-          repelX = (dx / dist) * force * 80;
-          repelY = (dy / dist) * force * 80;
+        // mouse is exactly on top of icon (avoid divide by zero)
+        if (dist === 0) return;
+
+        let targetX = base.x;
+        let targetY = base.y;
+
+        // REPULSION FORCE
+        if (dist < repelDistance) {
+          const force = (repelDistance - dist) / repelDistance;
+          const angleX = dx / dist;
+          const angleY = dy / dist;
+
+          targetX += angleX * repelPower * force;
+          targetY += angleY * repelPower * force;
         }
 
-        const parallaxX = (mouse.current.x / window.innerWidth) * 30 * icon.depth;
-        const parallaxY = (mouse.current.y / window.innerHeight) * 30 * icon.depth;
+        // PARALLAX
+        const parallaxX = ((mx - rect.width / 2) / rect.width) * 50 * icon.depth;
+        const parallaxY = ((my - rect.height / 2) / rect.height) * 50 * icon.depth;
 
-        el.style.transform = `translate(${x + floatX + repelX + parallaxX}px, ${y + floatY + repelY + parallaxY}px) rotate(${(t * 20) % 360}deg)`;
+        gsap.to(el, {
+          x: targetX + parallaxX,
+          y: targetY + parallaxY,
+          duration: 0.35,
+          ease: "power2.out",
+        });
       });
-
-      animationFrameRef.current = requestAnimationFrame(animate);
     };
 
-    animationFrameRef.current = requestAnimationFrame(animate);
-
-    return () => {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
-    };
+    window.addEventListener("mousemove", handleMove);
+    return () => window.removeEventListener("mousemove", handleMove);
   }, [isMobile]);
 
+  // recalc on resize
+  useEffect(() => {
+    const onResize = () => {
+      computeBasePositions();
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
   return (
-    <div className="w-full flex flex-col items-center">
-      <div
-        ref={canvasRef}
-        className="relative w-full overflow-hidden bg-neutral-950 mb-10"
-        style={{
-          maxWidth: "1400px",
-          height: isMobile ? "420px" : "600px",
-          borderRadius: "32px",
-        }}
-      >
-        {icons.map((icon, i) => (
-          <div
-            key={i}
-            ref={(el) => (iconsRef.current[i] = el)}
-            className="absolute pointer-events-none"
-            style={{
-              width: isMobile ? icon.size * 0.65 : icon.size,
-              height: isMobile ? icon.size * 0.65 : icon.size,
-              willChange: isMobile ? 'auto' : 'transform',
-            }}
-          >
-            <img
-              src={icon.src}
-              alt={icon.alt}
-              className="w-full h-full object-contain"
-              loading="lazy"
-              decoding="async"
-            />
-          </div>
-        ))}
-      </div>
-
-      <button
-        onClick={() => setShowVideo(true)}
-        className="px-10 py-4 rounded-full bg-white/10 border border-white/20 text-white font-semibold tracking-wide uppercase hover:bg-white/20 transition-all duration-300"
-      >
-        Hear Our Story
-      </button>
-
-      {showVideo && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-xl flex items-center justify-center z-[9999]">
-          <div className="relative w-[90%] max-w-[900px] rounded-2xl overflow-hidden shadow-xl">
-            <button
-              onClick={() => setShowVideo(false)}
-              className="absolute top-4 right-4 text-white text-2xl font-bold z-10"
-            >
-              ✕
-            </button>
-
-            <video
-              src="https://ik.imagekit.io/yourvideo.mp4"
-              controls
-              autoPlay
-              className="w-full h-full"
-            />
-          </div>
+    <div
+      ref={canvasRef}
+      className="relative w-full overflow-hidden bg-neutral-950"
+      style={{
+        maxWidth: "1400px",
+        height: isMobile ? "420px" : "600px",
+        borderRadius: "32px",
+      }}
+    >
+      {icons.map((icon, i) => (
+        <div
+          key={i}
+          ref={(el) => (iconsRef.current[i] = el)}
+          className="absolute"
+          style={{
+            width: isMobile ? icon.size * 0.65 : icon.size,
+            height: isMobile ? icon.size * 0.65 : icon.size,
+            zIndex: icon.zIndex,
+            willChange: "transform",
+          }}
+        >
+          <img
+            src={icon.src}
+            alt={icon.alt}
+            className="w-full h-full object-contain"
+            draggable={false}
+          />
         </div>
-      )}
+      ))}
     </div>
   );
 }

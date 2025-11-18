@@ -1,4 +1,8 @@
-import { useEffect, useRef, useState, useMemo } from 'react';
+import { useEffect, useRef } from 'react';
+import { gsap } from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+gsap.registerPlugin(ScrollTrigger);
 
 interface AnimatedBorderProps {
   children: React.ReactNode;
@@ -22,44 +26,47 @@ export function AnimatedBorder({
   className = '',
 }: AnimatedBorderProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const pathRef = useRef<SVGRectElement>(null);
-  const [isVisible, setIsVisible] = useState(!trigger);
-  const gradientId = useMemo(() => `borderGradient-${Math.random().toString(36).substr(2, 9)}`, []);
+  const pathRef = useRef<SVGPathElement>(null);
 
   useEffect(() => {
-    const element = containerRef.current;
-    if (!element || !trigger) return;
+    if (!containerRef.current || !pathRef.current) return;
 
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setTimeout(() => setIsVisible(true), delay * 1000);
-          observer.unobserve(element);
-        }
-      },
-      {
-        threshold: 0.1,
-        rootMargin: '0px 0px -100px 0px',
-      }
-    );
+    const container = containerRef.current;
+    const path = pathRef.current;
+    const length = path.getTotalLength();
 
-    observer.observe(element);
+    gsap.set(path, {
+      strokeDasharray: length,
+      strokeDashoffset: length,
+    });
+
+    const animation = gsap.to(path, {
+      strokeDashoffset: 0,
+      duration,
+      delay,
+      ease: 'power2.inOut',
+      scrollTrigger: trigger ? {
+        trigger: container,
+        start: 'top 80%',
+        toggleActions: 'play none none reverse',
+      } : undefined,
+    });
 
     return () => {
-      observer.disconnect();
+      animation.kill();
+      if (trigger) {
+        ScrollTrigger.getAll().forEach((st) => {
+          if (st.trigger === container) st.kill();
+        });
+      }
     };
-  }, [trigger, delay]);
-
-  const dashLength = useMemo(() => {
-    if (!pathRef.current) return 1000;
-    return pathRef.current.getTotalLength();
-  }, []);
+  }, [duration, delay, trigger]);
 
   return (
     <div ref={containerRef} className={`relative ${className}`}>
       <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ overflow: 'visible' }}>
         <defs>
-          <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
+          <linearGradient id={`borderGradient-${Math.random()}`} x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor={color} stopOpacity="0.8" />
             <stop offset="50%" stopColor={color} stopOpacity="1" />
             <stop offset="100%" stopColor={color} stopOpacity="0.8" />
@@ -80,15 +87,10 @@ export function AnimatedBorder({
           height={`calc(100% - ${strokeWidth}px)`}
           rx={borderRadius}
           fill="none"
-          stroke={`url(#${gradientId})`}
+          stroke={`url(#borderGradient-${Math.random()})`}
           strokeWidth={strokeWidth}
           strokeLinecap="round"
           filter="url(#borderGlow)"
-          strokeDasharray={dashLength}
-          strokeDashoffset={isVisible ? 0 : dashLength}
-          style={{
-            transition: `stroke-dashoffset ${duration}s cubic-bezier(0.65, 0, 0.35, 1)`,
-          }}
         />
       </svg>
       {children}
@@ -114,37 +116,48 @@ export function AnimatedUnderline({
   className?: string;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [isVisible, setIsVisible] = useState(!trigger);
+  const lineRef = useRef<SVGLineElement>(null);
 
   useEffect(() => {
-    const element = containerRef.current;
-    if (!element || !trigger) return;
+    if (!containerRef.current || !lineRef.current) return;
 
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setTimeout(() => setIsVisible(true), delay * 1000);
-          observer.unobserve(element);
-        }
-      },
-      {
-        threshold: 0.1,
-        rootMargin: '0px 0px -50px 0px',
-      }
-    );
+    const container = containerRef.current;
+    const line = lineRef.current;
+    const length = line.getTotalLength();
 
-    observer.observe(element);
+    gsap.set(line, {
+      strokeDasharray: length,
+      strokeDashoffset: length,
+    });
+
+    const animation = gsap.to(line, {
+      strokeDashoffset: 0,
+      duration,
+      delay,
+      ease: 'power2.out',
+      scrollTrigger: trigger ? {
+        trigger: container,
+        start: 'top 85%',
+        toggleActions: 'play none none reverse',
+      } : undefined,
+    });
 
     return () => {
-      observer.disconnect();
+      animation.kill();
+      if (trigger) {
+        ScrollTrigger.getAll().forEach((st) => {
+          if (st.trigger === container) st.kill();
+        });
+      }
     };
-  }, [trigger, delay]);
+  }, [duration, delay, trigger]);
 
   return (
     <div ref={containerRef} className={`relative inline-block ${className}`}>
       {children}
       <svg className="absolute left-0 bottom-0 w-full h-1 pointer-events-none" style={{ overflow: 'visible' }}>
         <line
+          ref={lineRef}
           x1="0"
           y1="0"
           x2="100%"
@@ -152,11 +165,6 @@ export function AnimatedUnderline({
           stroke={color}
           strokeWidth={strokeWidth}
           strokeLinecap="round"
-          strokeDasharray="100%"
-          strokeDashoffset={isVisible ? '0%' : '100%'}
-          style={{
-            transition: `stroke-dashoffset ${duration}s cubic-bezier(0.65, 0, 0.35, 1)`,
-          }}
         />
       </svg>
     </div>
@@ -183,36 +191,43 @@ export function AnimatedCircleProgress({
   className?: string;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [isVisible, setIsVisible] = useState(false);
+  const circleRef = useRef<SVGCircleElement>(null);
+
+  useEffect(() => {
+    if (!containerRef.current || !circleRef.current) return;
+
+    const container = containerRef.current;
+    const circle = circleRef.current;
+    const radius = (size - strokeWidth) / 2;
+    const circumference = 2 * Math.PI * radius;
+    const offset = circumference - (progress / 100) * circumference;
+
+    gsap.set(circle, {
+      strokeDasharray: circumference,
+      strokeDashoffset: circumference,
+    });
+
+    gsap.to(circle, {
+      strokeDashoffset: offset,
+      duration,
+      delay,
+      ease: 'power2.out',
+      scrollTrigger: {
+        trigger: container,
+        start: 'top 80%',
+        toggleActions: 'play none none reverse',
+      },
+    });
+
+    return () => {
+      ScrollTrigger.getAll().forEach((st) => {
+        if (st.trigger === container) st.kill();
+      });
+    };
+  }, [progress, size, strokeWidth, duration, delay]);
 
   const radius = (size - strokeWidth) / 2;
   const center = size / 2;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (progress / 100) * circumference;
-
-  useEffect(() => {
-    const element = containerRef.current;
-    if (!element) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setTimeout(() => setIsVisible(true), delay * 1000);
-          observer.unobserve(element);
-        }
-      },
-      {
-        threshold: 0.1,
-        rootMargin: '0px 0px -100px 0px',
-      }
-    );
-
-    observer.observe(element);
-
-    return () => {
-      observer.disconnect();
-    };
-  }, [delay]);
 
   return (
     <div ref={containerRef} className={`relative ${className}`} style={{ width: size, height: size }}>
@@ -226,6 +241,7 @@ export function AnimatedCircleProgress({
           strokeWidth={strokeWidth}
         />
         <circle
+          ref={circleRef}
           cx={center}
           cy={center}
           r={radius}
@@ -233,11 +249,6 @@ export function AnimatedCircleProgress({
           stroke={color}
           strokeWidth={strokeWidth}
           strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={isVisible ? offset : circumference}
-          style={{
-            transition: `stroke-dashoffset ${duration}s cubic-bezier(0.65, 0, 0.35, 1)`,
-          }}
         />
       </svg>
       {children && (
