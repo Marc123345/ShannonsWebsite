@@ -4,17 +4,26 @@ export function ScrollProgress() {
   const [scrollProgress, setScrollProgress] = useState(0);
 
   useEffect(() => {
+    let timeoutId: number | null = null;
     const updateScrollProgress = () => {
-      const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
-      const scrolled = window.scrollY;
-      const progress = (scrolled / scrollHeight) * 100;
-      setScrollProgress(progress);
+      if (timeoutId === null) {
+        timeoutId = window.setTimeout(() => {
+          const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+          const scrolled = window.scrollY;
+          const progress = (scrolled / scrollHeight) * 100;
+          setScrollProgress(progress);
+          timeoutId = null;
+        }, 50);
+      }
     };
 
-    window.addEventListener('scroll', updateScrollProgress);
+    window.addEventListener('scroll', updateScrollProgress, { passive: true });
     updateScrollProgress();
 
-    return () => window.removeEventListener('scroll', updateScrollProgress);
+    return () => {
+      window.removeEventListener('scroll', updateScrollProgress);
+      if (timeoutId !== null) clearTimeout(timeoutId);
+    };
   }, []);
 
   return (

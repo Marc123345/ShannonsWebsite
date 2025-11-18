@@ -2,7 +2,6 @@ import { lazy, Suspense } from 'react';
 import { ScrollTransition } from '../components/ScrollTransition';
 import { LusionHero } from '../components/LusionHero';
 import { HomeReel } from '../components/HomeReel';
-import { MorphingPathLine } from '../components/MorphingPathLine';
 
 const About = lazy(() => import('../components/About').then(m => ({ default: m.About })));
 const Services = lazy(() => import('../components/Services').then(m => ({ default: m.Services })));
@@ -29,61 +28,42 @@ const HeroLoader = () => (
 export function HomePage() {
   return (
     <>
-      <MorphingPathLine />
-
-      <div data-morph-section>
-        <LusionHero />
-      </div>
-
-      <div data-morph-section>
-        <HomeReel />
-      </div>
+      <LusionHero />
+      <HomeReel />
 
       <ScrollTransition>
         <Suspense fallback={<SectionLoader />}>
-          <div data-morph-section>
-            <Brands />
-          </div>
+          <Brands />
         </Suspense>
       </ScrollTransition>
 
       <ScrollTransition delay={0.1}>
         <Suspense fallback={<SectionLoader />}>
-          <div data-morph-section>
-            <About />
-          </div>
+          <About />
         </Suspense>
       </ScrollTransition>
 
       <ScrollTransition delay={0.15}>
         <Suspense fallback={<SectionLoader />}>
-          <div data-morph-section>
-            <Services />
-          </div>
+          <Services />
         </Suspense>
       </ScrollTransition>
 
       <ScrollTransition delay={0.2}>
         <Suspense fallback={<SectionLoader />}>
-          <div data-morph-section>
-            <Work />
-          </div>
+          <Work />
         </Suspense>
       </ScrollTransition>
 
       <ScrollTransition delay={0.1}>
         <Suspense fallback={<SectionLoader />}>
-          <div data-morph-section>
-            <Testimonials />
-          </div>
+          <Testimonials />
         </Suspense>
       </ScrollTransition>
 
       <ScrollTransition>
         <Suspense fallback={<SectionLoader />}>
-          <div data-morph-section>
-            <MinimalContact />
-          </div>
+          <MinimalContact />
         </Suspense>
       </ScrollTransition>
     </>
