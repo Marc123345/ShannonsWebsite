@@ -1,148 +1,133 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
-export function Loader() {
-  const [progress, setProgress] = useState(0);
-  const [fadeOut, setFadeOut] = useState(false);
-  const [isComplete, setIsComplete] = useState(false);
+const LOADING_PHRASES = [
+  "Initializing H2H Protocol...",
+  "Aligning Brand Voice...",
+  "Connecting Humans...",
+  "Ready."
+];
 
-  const startTime = useRef<number | null>(null);
+export function Loader({ onComplete }: { onComplete?: () => void }) {
+  const [count, setCount] = useState(0);
+  const [phraseIndex, setPhraseIndex] = useState(0);
+  const [isFinished, setIsFinished] = useState(false);
 
-  // Smooth RAF-based animation
   useEffect(() => {
-    const duration = 3200; // total load time (ms)
+    // 1. Text Cycle Logic
+    const textInterval = setInterval(() => {
+      setPhraseIndex((prev) => (prev < LOADING_PHRASES.length - 1 ? prev + 1 : prev));
+    }, 800);
 
-    const animate = (timestamp: number) => {
-      if (!startTime.current) startTime.current = timestamp;
-      const elapsed = timestamp - startTime.current;
+    // 2. Counter Logic (Ease-out effect)
+    let start = 0;
+    const end = 100;
+    const duration = 2500; // 2.5 seconds
+    const startTime = performance.now();
 
-      // Calculate % based on time passed
-      const nextProgress = Math.min((elapsed / duration) * 100, 100);
-      setProgress(nextProgress);
+    const animateCounter = (currentTime: number) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Ease out cubic function: 1 - pow(1 - x, 3)
+      const easeOut = 1 - Math.pow(1 - progress, 3);
+      
+      const currentCount = Math.floor(start + (end - start) * easeOut);
+      setCount(currentCount);
 
-      if (elapsed < duration) {
-        requestAnimationFrame(animate);
+      if (progress < 1) {
+        requestAnimationFrame(animateCounter);
       } else {
-        // fade out sequence
-        setTimeout(() => {
-          setFadeOut(true);
-          setTimeout(() => setIsComplete(true), 700);
-        }, 150);
+        // Animation Complete
+        clearInterval(textInterval);
+        setTimeout(() => setIsFinished(true), 500); // Slight pause at 100%
+        if (onComplete) setTimeout(onComplete, 1500); // Trigger parent callback
       }
     };
 
-    const raf = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(raf);
-  }, []);
+    requestAnimationFrame(animateCounter);
 
-  if (isComplete) return null;
+    return () => clearInterval(textInterval);
+  }, [onComplete]);
 
   return (
-    <div
-      className={`
-        fixed inset-0 z-[9999] 
-        flex items-center justify-center 
-        bg-black
-        transition-opacity duration-700
-        ${fadeOut ? "opacity-0" : "opacity-100"}
-      `}
-    >
-      {/* Scanline + Glow Overlay */}
-      <div className="absolute inset-0 pointer-events-none opacity-[0.12] mix-blend-overlay">
-        <div
-          className="
-            w-full h-full 
-            bg-[linear-gradient(rgba(255,255,255,0.08)_1px,transparent_1px)]
-            bg-[length:100%_4px]
-            animate-scanlines
-          "
-        />
-      </div>
-
-      {/* Content */}
-      <div className="text-center relative z-10">
-        {/* Logo */}
-        <div className="mb-8 flex justify-center">
-          <img
-            src="https://ik.imagekit.io/qcvroy8xpd/unnamed%20(1).png?updatedAt=1760474246200"
-            alt="H2H Logo"
-            className="
-              h-40 md:h-56 lg:h-64 w-auto 
-              animate-softPulse
-              drop-shadow-[0_0_28px_rgba(255,255,255,0.12)]
-            "
-          />
-        </div>
-
-        {/* Progress Bar */}
-        <div
-          className="
-            w-64 h-[6px] overflow-hidden mx-auto 
-            bg-neutral-900/80 rounded-full relative
-          "
+    <AnimatePresence>
+      {!isFinished && (
+        <motion.div
+          initial={{ y: 0 }}
+          exit={{ y: "-100%", transition: { duration: 0.8, ease: [0.76, 0, 0.24, 1] } }}
+          className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-neutral-950 text-white overflow-hidden"
         >
-          {/* Glow behind bar */}
-          <div
-            className="
-              absolute inset-0 
-              bg-gradient-to-r from-purple-600/20 to-pink-500/20
-              blur-[10px]
-            "
-            style={{ width: `${progress}%` }}
-          />
+          {/* --- BACKGROUND FX --- */}
+          
+          {/* Grain */}
+          <div className="absolute inset-0 opacity-20 pointer-events-none mix-blend-overlay" 
+               style={{ backgroundImage: `url("https://grainy-gradients.vercel.app/noise.svg")` }}></div>
+          
+          {/* Central Glow */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-orange-500/10 rounded-full blur-[100px] animate-pulse" />
 
-          {/* Main bar */}
-          <div
-            className="
-              h-full 
-              bg-gradient-to-r from-purple-600 to-pink-500
-              transition-all duration-75
-            "
-            style={{ width: `${progress}%` }}
-          />
-        </div>
+          {/* Scanlines */}
+          <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[length:100%_4px]" />
 
-        {/* Loading text */}
-        <p
-          className="
-            mt-6 
-            text-purple-400 
-            text-xs tracking-[0.25em]
-            uppercase
-            opacity-90
-            animate-textFlicker
-          "
-        >
-          Loading {Math.round(progress)}%
-        </p>
-      </div>
+          {/* --- CONTENT --- */}
+          
+          <div className="relative z-10 flex flex-col items-center w-full max-w-md px-6">
+            
+            {/* Logo */}
+            <motion.img
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5 }}
+              src="https://ik.imagekit.io/qcvroy8xpd/unnamed%20(1).png?updatedAt=1760474246200"
+              alt="H2H Logo"
+              className="h-24 md:h-32 w-auto mb-12 drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]"
+            />
 
-      {/* Keyframes */}
-      <style>{`
-        @keyframes softPulse {
-          0% { opacity: 0.7; transform: scale(0.98); }
-          50% { opacity: 1; transform: scale(1); }
-          100% { opacity: 0.7; transform: scale(0.98); }
-        }
-        .animate-softPulse {
-          animation: softPulse 2.2s infinite ease-in-out;
-        }
+            {/* The Big Counter */}
+            <div className="flex items-baseline gap-2 mb-6">
+              <span className="text-6xl md:text-8xl font-bold tracking-tighter tabular-nums leading-none">
+                {count}
+              </span>
+              <span className="text-xl md:text-2xl text-orange-500 font-medium">%</span>
+            </div>
 
-        @keyframes scanlines {
-          0% { background-position-y: 0; }
-          100% { background-position-y: 100%; }
-        }
-        .animate-scanlines {
-          animation: scanlines 6s linear infinite;
-        }
+            {/* Progress Bar */}
+            <div className="w-full h-[2px] bg-white/10 relative overflow-hidden rounded-full mb-4">
+              <motion.div 
+                className="absolute inset-y-0 left-0 bg-gradient-to-r from-orange-400 to-rose-500"
+                style={{ width: `${count}%` }}
+              />
+              {/* Leading white tip for the bar */}
+              <motion.div 
+                className="absolute top-0 bottom-0 w-[20px] bg-white blur-[5px]"
+                style={{ left: `${count}%`, transform: 'translateX(-100%)' }}
+              />
+            </div>
 
-        @keyframes textFlicker {
-          0%, 100% { opacity: 0.9; }
-          50% { opacity: 0.5; }
-        }
-        .animate-textFlicker {
-          animation: textFlicker 1.8s infinite ease-in-out;
-        }
-      `}</style>
-    </div>
+            {/* Changing Text */}
+            <div className="h-6 overflow-hidden">
+              <AnimatePresence mode="wait">
+                <motion.p
+                  key={phraseIndex}
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: -20, opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="text-sm uppercase tracking-[0.2em] text-neutral-400"
+                >
+                  {LOADING_PHRASES[phraseIndex]}
+                </motion.p>
+              </AnimatePresence>
+            </div>
+          </div>
+
+          {/* Bottom aligned branding */}
+          <div className="absolute bottom-10 text-[10px] text-white/20 tracking-widest uppercase">
+            Human 2 Human Agency ©2024
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
