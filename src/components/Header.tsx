@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X } from "lucide-react";
+import gsap from "gsap";
 
 /**
  * FULL LUSION NAV CLONE
@@ -8,9 +8,11 @@ import { Menu, X } from "lucide-react";
  */
 
 export function Header() {
+  const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
+
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   const navItems = [
     { path: "/work", label: "Work" },
@@ -19,54 +21,56 @@ export function Header() {
     { path: "/blog", label: "Blog" }
   ];
 
-  // shrink on scroll with throttling
+  // shrink on scroll
   useEffect(() => {
-    let timeoutId: number | null = null;
-    const handleScroll = () => {
-      if (timeoutId === null) {
-        timeoutId = window.setTimeout(() => {
-          setScrolled(window.scrollY > 40);
-          timeoutId = null;
-        }, 100);
-      }
-    };
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-      if (timeoutId !== null) clearTimeout(timeoutId);
-    };
+    const handleScroll = () => setScrolled(window.scrollY > 40);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Close mobile menu when route changes
+  // lock scroll when menu is open
   useEffect(() => {
-    setMobileMenuOpen(false);
-  }, [location.pathname]);
+    document.body.style.overflow = menuOpen ? "hidden" : "";
+  }, [menuOpen]);
 
+  // dot animation
+  useEffect(() => {
+    if (!buttonRef.current) return;
+
+    const dots = buttonRef.current.querySelectorAll(".header-dot");
+    if (!dots.length) return;
+
+    const tl = gsap.timeline({ repeat: -1, yoyo: true });
+    tl.to(dots[0], { y: -4, duration: 0.5 }, 0);
+    tl.to(dots[1], { y: 4, duration: 0.5 }, 0);
+
+    return () => tl.kill();
+  }, []);
 
   return (
     <>
       <header
         className={`
           fixed top-0 left-0 right-0 z-50 transition-all duration-500
-          ${scrolled ? "backdrop-blur-xl md:scale-[0.96] opacity-95" : "scale-100 opacity-100"}
+          ${scrolled ? "backdrop-blur-xl scale-[0.96] opacity-95" : "scale-100 opacity-100"}
         `}
       >
-        <div className="max-w-[1600px] mx-auto px-6 md:px-12 py-6">
+        <div className="max-w-[1600px] mx-auto px-6 md:px-12 pt-8">
           <div className="
-            w-full h-16
+            w-full h-[4.2rem]
             rounded-full overflow-hidden relative flex items-center justify-between px-8
-            bg-white/90 backdrop-blur-xl border border-neutral-200 shadow-sm
+            bg-white/10 backdrop-blur-2xl border border-white/20
           ">
             <Link to="/" className="flex items-center">
               <img
-                src="https://ik.imagekit.io/qcvroy8xpd/image%201%20(5).png"
+                src="https://ik.imagekit.io/qcvroy8xpd/unnamed%20(1).png"
                 alt="Logo"
                 className="h-10 w-auto"
               />
             </Link>
 
             {/* Desktop Navigation */}
-            <nav className="hidden lg:flex items-center gap-8">
+            <nav className="hidden lg:flex items-center gap-12">
               {navItems.map((item) => {
                 const active = location.pathname === item.path;
                 return (
@@ -74,78 +78,72 @@ export function Header() {
                     key={item.path}
                     to={item.path}
                     className={`
-                      relative font-medium text-sm transition-all
-                      ${active ? "text-black" : "text-neutral-600 hover:text-black"}
+                      relative font-medium text-sm uppercase tracking-widest transition-all
+                      ${active ? "text-black" : "text-neutral-700 hover:text-black"}
                     `}
                   >
                     {item.label}
-                    {active && (
-                      <span className="absolute left-0 -bottom-1 w-full h-[2px] bg-black" />
-                    )}
+                    <span
+                      className={`
+                        absolute left-0 -bottom-1 h-[2px] bg-black transition-all
+                        ${active ? "w-full" : "w-0 group-hover:w-full"}
+                      `}
+                    />
                   </Link>
                 );
               })}
             </nav>
 
-            {/* Desktop Contact Button */}
-            <Link
-              to="/contact"
+            {/* Menu Button */}
+            <button
+              ref={buttonRef}
+              onClick={() => setMenuOpen(!menuOpen)}
               className="
-                hidden lg:block
-                px-6 py-2.5 rounded-full
-                bg-black text-white text-sm font-medium
-                transition-all hover:bg-neutral-800
+                relative flex items-center gap-3 px-6 py-2 rounded-full
+                bg-white/90 border border-black/10 uppercase tracking-widest text-xs font-semibold
+                transition-all hover:bg-white
               "
             >
-              Contact
-            </Link>
+              <span className={`${menuOpen ? "opacity-0" : "opacity-100"} transition-opacity`}>
+                Menu
+              </span>
 
-            {/* Mobile Hamburger Button */}
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden p-2 text-neutral-900"
-              aria-label="Toggle menu"
-            >
-              {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+              <span className={`${menuOpen ? "opacity-100" : "opacity-0"} absolute transition-opacity`}>
+                Close
+              </span>
+
+              <div className="flex gap-1 ml-6">
+                <span className="header-dot w-1.5 h-1.5 bg-black rounded-full block"></span>
+                <span className="header-dot w-1.5 h-1.5 bg-black rounded-full block"></span>
+              </div>
             </button>
           </div>
         </div>
       </header>
 
-      {/* Mobile Menu */}
-      {mobileMenuOpen && (
-        <div className="fixed inset-0 z-40 lg:hidden">
-          <div className="fixed inset-0 bg-black/50" onClick={() => setMobileMenuOpen(false)} />
-          <div className="fixed top-28 right-6 left-6 bg-white rounded-3xl shadow-2xl border border-neutral-200 p-6">
-            <nav className="flex flex-col gap-4">
-              {navItems.map((item) => {
-                const active = location.pathname === item.path;
-                return (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    className={`
-                      px-4 py-3 rounded-xl text-base font-medium
-                      ${active ? "bg-neutral-100 text-black" : "text-neutral-600"}
-                    `}
-                  >
-                    {item.label}
-                  </Link>
-                );
-              })}
+      {/* FULLSCREEN MENU */}
+      <div
+        className={`
+          fixed inset-0 bg-white z-40 transition-all duration-700
+          ${menuOpen ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"}
+        `}
+      >
+        <div className="h-full flex items-center justify-center">
+          <nav className="flex flex-col items-center gap-10">
+            {navItems.map((item, index) => (
               <Link
-                to="/contact"
-                className="
-                  mt-2 px-4 py-3 rounded-xl text-center
-                  bg-black text-white text-base font-medium
-                "
+                key={item.path}
+                to={item.path}
+                onClick={() => setMenuOpen(false)}
+                className="text-5xl md:text-6xl font-semibold uppercase tracking-tight text-neutral-900 hover:text-black transition-all"
+                style={{ transitionDelay: menuOpen ? `${index * 80}ms` : "0ms" }}
               >
-                Contact
+                {item.label}
               </Link>
-            </nav>
-          </div>
+            ))}
+          </nav>
         </div>
-      )}
+      </div>
     </>
   );
 }

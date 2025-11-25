@@ -1,4 +1,4 @@
-import { useEffect, useRef, memo } from 'react';
+import { useEffect, useRef } from 'react';
 import { Building2, Users, CircleUser as UserCircle2, Globe, DollarSign, FileText, ArrowUpRight, Zap, Network, Sparkles, ChevronRight } from 'lucide-react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -102,7 +102,7 @@ const otherServices = [
   }
 ];
 
-export const Services = memo(function Services() {
+export function Services() {
   const sectionRef = useRef<HTMLElement>(null);
   const pillarsWrapperRef = useRef<HTMLDivElement>(null);
 
@@ -418,4 +418,4 @@ export const Services = memo(function Services() {
       </div>
     </section>
   );
-});
+}

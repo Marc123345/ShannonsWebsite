@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 
 interface TrailPoint {
   x: number;
@@ -7,22 +7,29 @@ interface TrailPoint {
 }
 
 export function CustomCursorTrail() {
-  const isMobile = typeof window !== 'undefined' && (window.innerWidth < 1024 || 'ontouchstart' in window);
-
-  if (isMobile) return null;
-
-  return <CustomCursorTrailDesktop />;
-}
-
-function CustomCursorTrailDesktop() {
   const [trail, setTrail] = useState<TrailPoint[]>([]);
   const [isVisible, setIsVisible] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const animationFrameRef = useRef<number>();
   const mousePos = useRef({ x: 0, y: 0 });
   const lastUpdateTime = useRef(0);
   const trailLength = 6;
 
   useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024 || 'ontouchstart' in window);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+
+    if (isMobile) return;
+
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  useEffect(() => {
+    if (isMobile) return;
+
     const handleMouseMove = (e: MouseEvent) => {
       mousePos.current = { x: e.clientX, y: e.clientY };
       setIsVisible(true);
@@ -34,7 +41,7 @@ function CustomCursorTrailDesktop() {
 
     const updateTrail = () => {
       const now = performance.now();
-      if (now - lastUpdateTime.current < 32) {
+      if (now - lastUpdateTime.current < 16) {
         animationFrameRef.current = requestAnimationFrame(updateTrail);
         return;
       }
@@ -54,8 +61,8 @@ function CustomCursorTrailDesktop() {
       animationFrameRef.current = requestAnimationFrame(updateTrail);
     };
 
-    window.addEventListener('mousemove', handleMouseMove, { passive: true });
-    document.body.addEventListener('mouseleave', handleMouseLeave, { passive: true });
+    window.addEventListener('mousemove', handleMouseMove);
+    document.body.addEventListener('mouseleave', handleMouseLeave);
     animationFrameRef.current = requestAnimationFrame(updateTrail);
 
     return () => {
@@ -65,9 +72,9 @@ function CustomCursorTrailDesktop() {
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, []);
+  }, [isMobile]);
 
-  if (!isVisible) return null;
+  if (isMobile || !isVisible) return null;
 
   return (
     <div className="fixed inset-0 pointer-events-none z-[9999]">
@@ -80,7 +87,7 @@ function CustomCursorTrailDesktop() {
             top: point.y,
             transform: 'translate(-50%, -50%)',
             opacity: point.opacity * 0.6,
-            willChange: 'opacity',
+            transition: 'opacity 0.3s ease-out',
           }}
         />
       ))}

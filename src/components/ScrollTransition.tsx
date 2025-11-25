@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
+import { createScrollFade, createParallax, killScrollTrigger } from '../utils/scrollTriggerUtils';
 
 interface ScrollTransitionProps {
   children: React.ReactNode;
@@ -7,88 +8,58 @@ interface ScrollTransitionProps {
 
 export function ScrollTransition({ children, delay = 0 }: ScrollTransitionProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
+    if (!ref.current) return;
+
     const element = ref.current;
-    if (!element) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setTimeout(() => setIsVisible(true), delay * 1000);
-          observer.unobserve(element);
-        }
-      },
-      {
-        threshold: 0.1,
-        rootMargin: '0px 0px -100px 0px',
-      }
-    );
-
-    observer.observe(element);
+    const animation = createScrollFade(element, { delay });
 
     return () => {
-      observer.disconnect();
+      animation.kill();
+      killScrollTrigger(element);
     };
   }, [delay]);
 
-  return (
-    <div
-      ref={ref}
-      className="transition-all duration-1000 ease-out"
-      style={{
-        opacity: isVisible ? 1 : 0,
-        transform: isVisible ? 'translateY(0)' : 'translateY(30px)',
-      }}
-    >
-      {children}
-    </div>
-  );
+  return <div ref={ref}>{children}</div>;
 }
 
 export function ScrollFadeIn({ children, delay = 0 }: ScrollTransitionProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
+    if (!ref.current) return;
+
     const element = ref.current;
-    if (!element) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setTimeout(() => setIsVisible(true), delay * 1000);
-          observer.unobserve(element);
-        }
-      },
-      {
-        threshold: 0.15,
-        rootMargin: '0px 0px -80px 0px',
-      }
-    );
-
-    observer.observe(element);
+    const animation = createScrollFade(element, {
+      delay,
+      start: 'top 80%',
+      end: 'top 40%'
+    });
 
     return () => {
-      observer.disconnect();
+      animation.kill();
+      killScrollTrigger(element);
     };
   }, [delay]);
 
-  return (
-    <div
-      ref={ref}
-      className="transition-all duration-1000 ease-out"
-      style={{
-        opacity: isVisible ? 1 : 0,
-        transform: isVisible ? 'translateY(0) scale(1)' : 'translateY(40px) scale(0.95)',
-      }}
-    >
-      {children}
-    </div>
-  );
+  return <div ref={ref}>{children}</div>;
 }
 
 export function ParallaxSection({ children }: { children: React.ReactNode }) {
-  return <div>{children}</div>;
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!ref.current) return;
+
+    const element = ref.current;
+    const animation = createParallax(element);
+
+    return () => {
+      animation.kill();
+      killScrollTrigger(element);
+    };
+  }, []);
+
+  return <div ref={ref}>{children}</div>;
 }
