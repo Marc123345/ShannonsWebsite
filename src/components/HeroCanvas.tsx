@@ -4,64 +4,27 @@ import gsap from "gsap";
 interface FloatingIcon {
   src: string;
   alt: string;
-  xPct: number; // initial left %
-  yPct: number; // initial top %
+  xPct: number;
+  yPct: number;
   size: number;
-  depth: number; // parallax strength
+  depth: number; 
   rotation: number;
   zIndex: number;
 }
 
 const icons: FloatingIcon[] = [
-  {
-    src: "https://ik.imagekit.io/qcvroy8xpd/03_X.svg",
-    alt: "X",
-    xPct: 22,
-    yPct: 25,
-    size: 150,
-    depth: 1.5,
-    rotation: -12,
-    zIndex: 3,
-  },
-  {
-    src: "https://ik.imagekit.io/qcvroy8xpd/02_Instagram.svg",
-    alt: "Instagram",
-    xPct: 68,
-    yPct: 30,
-    size: 160,
-    depth: 1.1,
-    rotation: 18,
-    zIndex: 5,
-  },
-  {
-    src: "https://ik.imagekit.io/qcvroy8xpd/04_LinkedIn.svg",
-    alt: "LinkedIn",
-    xPct: 33,
-    yPct: 64,
-    size: 150,
-    depth: 0.9,
-    rotation: 8,
-    zIndex: 4,
-  },
-  {
-    src: "https://ik.imagekit.io/qcvroy8xpd/05_Youtube.svg",
-    alt: "YouTube",
-    xPct: 72,
-    yPct: 70,
-    size: 165,
-    depth: 1.0,
-    rotation: -6,
-    zIndex: 2,
-  },
+  { src: "https://ik.imagekit.io/qcvroy8xpd/03_X.svg", alt: "X", xPct: 22, yPct: 25, size: 150, depth: 1.8, rotation: -12, zIndex: 3 },
+  { src: "https://ik.imagekit.io/qcvroy8xpd/02_Instagram.svg", alt: "Instagram", xPct: 68, yPct: 30, size: 160, depth: 1.2, rotation: 18, zIndex: 5 },
+  { src: "https://ik.imagekit.io/qcvroy8xpd/04_LinkedIn.svg", alt: "LinkedIn", xPct: 33, yPct: 64, size: 150, depth: 1.5, rotation: 8, zIndex: 4 },
+  { src: "https://ik.imagekit.io/qcvroy8xpd/05_Youtube.svg", alt: "YouTube", xPct: 72, yPct: 70, size: 165, depth: 1.1, rotation: -6, zIndex: 2 },
 ];
 
 export function HeroCanvas() {
   const canvasRef = useRef<HTMLDivElement>(null);
   const iconsRef = useRef<(HTMLDivElement | null)[]>([]);
-  const basePositions = useRef<{ x: number; y: number }[]>([]);
   const [isMobile, setIsMobile] = useState(false);
+  const mouse = useRef({ x: 0, y: 0 });
 
-  // detect mobile
   useEffect(() => {
     const handle = () => setIsMobile(window.innerWidth < 768);
     handle();
@@ -69,160 +32,132 @@ export function HeroCanvas() {
     return () => window.removeEventListener("resize", handle);
   }, []);
 
-  // calculate base positions
-  const computeBasePositions = () => {
+  useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const rect = canvas.getBoundingClientRect();
+    // INITIAL SETTINGS
+    iconsRef.current.forEach((el, i) => {
+      if (!el) return;
+      const icon = icons[i];
+      
+      // Starting positions using CSS variables for flexibility
+      gsap.set(el, {
+        left: `${icon.xPct}%`,
+        top: `${icon.yPct}%`,
+        xPercent: -50,
+        yPercent: -50,
+        rotation: icon.rotation,
+        opacity: 0,
+        scale: 0.5
+      });
 
-    icons.forEach((icon, i) => {
-      const x = (icon.xPct / 100) * rect.width;
-      const y = (icon.yPct / 100) * rect.height;
-      basePositions.current[i] = { x, y };
+      // Cinematic Entrance
+      gsap.to(el, {
+        opacity: 1,
+        scale: 1,
+        duration: 1.5,
+        delay: i * 0.1,
+        ease: "power4.out"
+      });
+
+      // Constant Ambient "Float" (Infinite)
+      gsap.to(el, {
+        y: "+=25",
+        x: "+=15",
+        rotation: "+=5",
+        duration: 3 + Math.random() * 2,
+        repeat: -1,
+        yoyo: true,
+        ease: "sine.inOut"
+      });
     });
-  };
 
-  // init positions after render
-  useEffect(() => {
-    setTimeout(() => {
-      computeBasePositions();
-
-      iconsRef.current.forEach((el, i) => {
-        if (!el) return;
-        const base = basePositions.current[i];
-        const icon = icons[i];
-
-        gsap.set(el, {
-          xPercent: -50,
-          yPercent: -50,
-          x: base.x,
-          y: base.y,
-          rotation: icon.rotation,
-        });
-
-        // idle float
-        gsap.to(el, {
-          y: base.y + (Math.random() > 0.5 ? 20 : -20),
-          duration: 4 + Math.random() * 2,
-          repeat: -1,
-          yoyo: true,
-          ease: "sine.inOut",
-          modifiers: {
-            y: gsap.utils.unitize((v) =>
-              parseFloat(v)
-            ), // ensure px stays px
-          },
-        });
-
-        // rotation
-        gsap.to(el, {
-          rotation: `+=${Math.random() > 0.5 ? 360 : -360}`,
-          duration: 22 + Math.random() * 10,
-          ease: "none",
-          repeat: -1,
-        });
-      });
-    }, 50);
-  }, []);
-
-  // mouse interaction (repulsion + parallax)
-  useEffect(() => {
-    if (isMobile) return;
-
-    const handleMove = (e: MouseEvent) => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-
+    const handleMouseMove = (e: MouseEvent) => {
+      const { clientX, clientY } = e;
       const rect = canvas.getBoundingClientRect();
-      const mx = e.clientX - rect.left;
-      const my = e.clientY - rect.top;
+      // Normalized mouse coordinates (-1 to 1)
+      mouse.current.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.current.y = ((clientY - rect.top) / rect.height) * 2 - 1;
 
-      const repelDistance = 200;
-      const repelPower = 140;
-
+      // ICON INTERACTION LOOP
       iconsRef.current.forEach((el, i) => {
         if (!el) return;
-
-        const base = basePositions.current[i];
         const icon = icons[i];
-
-        const dx = base.x - mx;
-        const dy = base.y - my;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-
-        // mouse is exactly on top of icon (avoid divide by zero)
-        if (dist === 0) return;
-
-        let targetX = base.x;
-        let targetY = base.y;
-
-        // REPULSION FORCE
-        if (dist < repelDistance) {
-          const force = (repelDistance - dist) / repelDistance;
-          const angleX = dx / dist;
-          const angleY = dy / dist;
-
-          targetX += angleX * repelPower * force;
-          targetY += angleY * repelPower * force;
-        }
-
-        // PARALLAX
-        const parallaxX = ((mx - rect.width / 2) / rect.width) * 50 * icon.depth;
-        const parallaxY = ((my - rect.height / 2) / rect.height) * 50 * icon.depth;
-
+        
+        // Parallax + Repulsion combined
+        const tx = mouse.current.x * 60 * icon.depth;
+        const ty = mouse.current.y * 60 * icon.depth;
+        
         gsap.to(el, {
-          x: targetX + parallaxX,
-          y: targetY + parallaxY,
-          duration: 0.35,
-          ease: "power2.out",
+          x: tx,
+          y: ty,
+          rotation: icon.rotation + (mouse.current.x * 10),
+          duration: 1.2,
+          ease: "power3.out", // Lushion uses heavy deceleration
+          overwrite: "auto",
         });
+
+        // "Chromatic Leak" effect on images when moving fast
+        const img = el.querySelector('img');
+        if (img) {
+          gsap.to(img, {
+            filter: `drop-shadow(${mouse.current.x * 15}px 0px 10px rgba(123,0,255,0.3))`,
+            duration: 0.5
+          });
+        }
       });
     };
 
-    window.addEventListener("mousemove", handleMove);
-    return () => window.removeEventListener("mousemove", handleMove);
-  }, [isMobile]);
-
-  // recalc on resize
-  useEffect(() => {
-    const onResize = () => {
-      computeBasePositions();
-    };
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => window.removeEventListener("mousemove", handleMouseMove);
   }, []);
 
   return (
     <div
       ref={canvasRef}
-      className="relative w-full overflow-hidden bg-neutral-950"
+      className="relative w-full overflow-hidden bg-secondary-900 ultra-glass border border-white/10"
       style={{
-        maxWidth: "1400px",
-        height: isMobile ? "420px" : "600px",
-        borderRadius: "32px",
+        height: isMobile ? "450px" : "750px",
+        borderRadius: "40px",
       }}
     >
+      {/* Background Radial Glow (Lushion Aesthetic) */}
+      <div className="absolute inset-0 pointer-events-none opacity-40 bg-[radial-gradient(circle_at_50%_50%,rgba(123,0,255,0.15),transparent_70%)] animate-aurora" />
+
       {icons.map((icon, i) => (
         <div
           key={i}
           ref={(el) => (iconsRef.current[i] = el)}
-          className="absolute"
+          className="absolute cursor-pointer group"
           style={{
-            width: isMobile ? icon.size * 0.65 : icon.size,
-            height: isMobile ? icon.size * 0.65 : icon.size,
+            width: isMobile ? icon.size * 0.6 : icon.size,
+            height: isMobile ? icon.size * 0.6 : icon.size,
             zIndex: icon.zIndex,
-            willChange: "transform",
+            willChange: "transform, filter",
           }}
         >
           <img
             src={icon.src}
             alt={icon.alt}
-            className="w-full h-full object-contain"
+            className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110"
             draggable={false}
           />
+          
+          {/* Subtle Glow Ring on Hover */}
+          <div className="absolute inset-0 rounded-full border border-accent-500/0 group-hover:border-accent-500/40 group-hover:scale-125 transition-all duration-700 blur-md" />
         </div>
       ))}
+
+      {/* Hero Text Reveal (Integrating your design system) */}
+      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-10">
+        <h1 className="text-white text-6xl md:text-9xl font-heading animate-cinematic-zoom mix-blend-difference">
+          H2H<span className="text-accent-500">.</span>
+        </h1>
+        <p className="text-accent-200 tracking-[0.4em] uppercase text-caption animate-fade-in-up">
+          Digital Excellence
+        </p>
+      </div>
     </div>
   );
 }
